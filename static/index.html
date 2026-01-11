@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LipSync Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0b;
+            --surface: #141416;
+            --surface-hover: #1a1a1e;
+            --border: #2a2a2e;
+            --text: #ffffff;
+            --text-muted: #71717a;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 0.75rem;
+        }
+
+        .video-placeholder svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-zone.has-file {
+            border-color: var(--success);
+            border-style: solid;
+        }
+
+        .upload-zone svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .upload-zone p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .upload-zone .filename {
+            color: var(--text);
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .upload-zone input {
+            display: none;
+        }
+
+        .info-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+        }
+
+        .controls {
+            margin-top: 2rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .progress-section {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .progress-section.visible {
+            display: block;
+        }
+
+        .progress-bar-container {
+            background: var(--bg);
+            border-radius: 999px;
+            height: 6px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 999px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .progress-bar.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .status-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-text .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .result-section {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .result-section.visible {
+            display: block;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .result-actions .btn {
+            flex: 1;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .tab:hover:not(.active) {
+            border-color: var(--text-muted);
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-toggle:last-child {
+            border-bottom: none;
+        }
+
+        .settings-toggle label {
+            font-size: 0.9rem;
+        }
+
+        .settings-toggle span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.active {
+            background: var(--accent);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .api-config {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .api-config-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .api-config-header h4 {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .api-config-header svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        .api-config.expanded .api-config-header svg {
+            transform: rotate(180deg);
+        }
+
+        .api-config-content {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .api-config.expanded .api-config-content {
+            display: block;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .api-input-group input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .api-input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .api-input-group button {
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .api-input-group button:hover {
+            background: var(--accent-hover);
+        }
+
+        .api-status {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .api-status.connected {
+            color: var(--success);
+        }
+
+        .api-status.disconnected {
+            color: var(--error);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Audio Recording Styles */
+        .record-container {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .record-visualizer {
+            height: 60px;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .record-visualizer canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .record-time {
+            font-size: 2rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .record-time.recording {
+            color: var(--error);
+        }
+
+        .record-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .record-btn, .stop-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .record-btn {
+            background: var(--error);
+            color: white;
+        }
+
+        .record-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .record-btn.recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+        }
+
+        .record-btn svg, .stop-btn svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .stop-btn {
+            background: var(--surface-hover);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .stop-btn:hover {
+            background: var(--border);
+        }
+
+        .record-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .record-hint.recording {
+            color: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LipSync Studio</h1>
+            <p class="subtitle">Transform any video with AI-powered lip synchronization</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Left Column: Video Input -->
+            <div class="card">
+                <h3 class="card-title">Video Input</h3>
+
+                <div class="upload-zone" id="video-drop-zone">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <p>Drop video here or click to browse</p>
+                    <p class="filename" id="video-filename"></p>
+                    <input type="file" id="video-input" accept="video/mp4,video/avi,video/mov,video/webm,.mp4,.avi,.mov,.webm">
+                </div>
+                <p class="info-text">Supports MP4, AVI, MOV, WebM (max 100MB)</p>
+
+                <div class="video-container" id="video-preview-container" style="display: none; margin-top: 1rem;">
+                    <video id="video-preview" controls></video>
+                </div>
+            </div>
+
+            <!-- Right Column: Audio Input & Controls -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab active" data-audio-tab="record">Record Audio</button>
+                    <button class="tab" data-audio-tab="upload">Upload Audio</button>
+                </div>
+
+                <!-- Record Audio Section -->
+                <div id="record-audio-section">
+                    <div class="record-container" id="record-container">
+                        <div class="record-visualizer" id="record-visualizer">
+                            <canvas id="audio-visualizer"></canvas>
+                        </div>
+                        <div class="record-time" id="record-time">00:00</div>
+                        <div class="record-controls">
+                            <button class="record-btn" id="record-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                                </svg>
+                            </button>
+                            <button class="stop-btn hidden" id="stop-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="record-hint" id="record-hint">Click to start recording (max 30s)</p>
+                    </div>
+                    <audio id="recorded-audio-preview" controls style="width: 100%; margin-top: 1rem; display: none;"></audio>
+                </div>
+
+                <!-- Upload Audio Section -->
+                <div id="upload-audio-section" class="hidden">
+                    <div class="upload-zone" id="audio-drop-zone">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                        </svg>
+                        <p>Drop audio here or click to browse</p>
+                        <p class="filename" id="audio-filename"></p>
+                        <input type="file" id="audio-input" accept="audio/wav,audio/mp3,audio/mpeg,audio/m4a,audio/ogg,.wav,.mp3,.m4a,.ogg">
+                    </div>
+                    <p class="info-text">Supports WAV, MP3, M4A, OGG (max 30 seconds recommended)</p>
+                    <audio id="audio-preview" controls style="width: 100%; margin-top: 1rem; display: none;"></audio>
+                </div>
+
+                <div class="settings-toggle" style="margin-top: 1.5rem;">
+                    <div>
+                        <label>Use GAN Model</label><br>
+                        <span>Higher quality, slower processing</span>
+                    </div>
+                    <div class="toggle active" id="use-gan-toggle"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="generate-btn" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Generate Lip Sync
+                    </button>
+                </div>
+
+                <div class="progress-section" id="progress-section">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar indeterminate" id="progress-bar"></div>
+                    </div>
+                    <div class="status-text">
+                        <div class="spinner"></div>
+                        <span id="status-text">Processing...</span>
+                    </div>
+                </div>
+
+                <div class="error-message" id="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="result-section" id="result-section">
+            <div class="card">
+                <h3 class="card-title">Generated Result</h3>
+                <div class="video-container">
+                    <video id="result-video" controls></video>
+                </div>
+                <div class="result-actions">
+                    <button class="btn btn-secondary" id="download-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </button>
+                    <button class="btn btn-primary" id="new-generation-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        New Generation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by <a href="https://github.com/Rudrabha/Wav2Lip" target="_blank">Wav2Lip</a></p>
+
+            <div class="api-config" id="api-config">
+                <div class="api-config-header" onclick="toggleApiConfig()">
+                    <h4>API Settings</h4>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <div class="api-config-content">
+                    <div class="api-input-group">
+                        <input type="text" id="api-url-input" placeholder="https://your-modal-app.modal.run">
+                        <button onclick="saveApiUrl()">Save</button>
+                    </div>
+                    <div class="api-status" id="api-status">
+                        <span class="status-dot"></span>
+                        <span id="api-status-text">Checking...</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration - Uses localStorage to persist API URL
+        // Fallback to current origin for local development with Modal
+        const DEFAULT_API_URL = window.location.origin;
+
+        // Get API URL from localStorage or use default
+        function getApiUrl() {
+            return localStorage.getItem('lipsync_api_url') || DEFAULT_API_URL;
+        }
+
+        let API_BASE_URL = getApiUrl();
+
+        // State
+        let videoFile = null;
+        let audioFile = null;
+        let useGan = true;
+        let currentJobId = null;
+        let pollInterval = null;
+        let useRecordedAudio = true;
+
+        // Audio Recording State
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let audioContext = null;
+        let analyser = null;
+        let animationId = null;
+        const MAX_RECORDING_TIME = 30; // seconds
+
+        // DOM Elements
+        const videoInput = document.getElementById('video-input');
+        const audioInput = document.getElementById('audio-input');
+        const videoDropZone = document.getElementById('video-drop-zone');
+        const audioDropZone = document.getElementById('audio-drop-zone');
+        const videoFilename = document.getElementById('video-filename');
+        const audioFilename = document.getElementById('audio-filename');
+        const videoPreview = document.getElementById('video-preview');
+        const videoPreviewContainer = document.getElementById('video-preview-container');
+        const audioPreview = document.getElementById('audio-preview');
+        const generateBtn = document.getElementById('generate-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status-text');
+        const errorMessage = document.getElementById('error-message');
+        const resultSection = document.getElementById('result-section');
+        const resultVideo = document.getElementById('result-video');
+        const downloadBtn = document.getElementById('download-btn');
+        const newGenerationBtn = document.getElementById('new-generation-btn');
+        const useGanToggle = document.getElementById('use-gan-toggle');
+
+        // Audio Tab switching
+        const audioTabs = document.querySelectorAll('.tab[data-audio-tab]');
+        const recordAudioSection = document.getElementById('record-audio-section');
+        const uploadAudioSection = document.getElementById('upload-audio-section');
+
+        audioTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                audioTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const tabId = tab.dataset.audioTab;
+                if (tabId === 'record') {
+                    recordAudioSection.classList.remove('hidden');
+                    uploadAudioSection.classList.add('hidden');
+                    useRecordedAudio = true;
+                } else {
+                    recordAudioSection.classList.add('hidden');
+                    uploadAudioSection.classList.remove('hidden');
+                    useRecordedAudio = false;
+                }
+                updateGenerateButton();
+            });
+        });
+
+        // Toggle GAN
+        useGanToggle.addEventListener('click', () => {
+            useGan = !useGan;
+            useGanToggle.classList.toggle('active', useGan);
+        });
+
+        // File upload handling
+        function setupDropZone(dropZone, input, onFile, filenameEl, previewEl) {
+            dropZone.addEventListener('click', () => input.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) handleFile(file, dropZone, filenameEl, previewEl, onFile);
+            });
+
+            input.addEventListener('change', () => {
+                const file = input.files[0];
+                if (file) handleFile(file, dropZone, filenameEl, previewEl, onFile);
+            });
+        }
+
+        function handleFile(file, dropZone, filenameEl, previewEl, callback) {
+            filenameEl.textContent = file.name;
+            dropZone.classList.add('has-file');
+
+            if (previewEl) {
+                const url = URL.createObjectURL(file);
+                previewEl.src = url;
+                previewEl.style.display = 'block';
+                if (previewEl.tagName === 'VIDEO') {
+                    previewEl.parentElement.style.display = 'block';
+                }
+            }
+
+            callback(file);
+        }
+
+        setupDropZone(videoDropZone, videoInput, (file) => {
+            videoFile = file;
+            updateGenerateButton();
+        }, videoFilename, videoPreview);
+
+        setupDropZone(audioDropZone, audioInput, (file) => {
+            audioFile = file;
+            updateGenerateButton();
+        }, audioFilename, audioPreview);
+
+        function updateGenerateButton() {
+            const hasVideo = videoFile;
+            const hasAudio = audioFile;
+            generateBtn.disabled = !(hasVideo && hasAudio);
+        }
+
+        // Audio Recording
+        const recordBtn = document.getElementById('record-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const recordTime = document.getElementById('record-time');
+        const recordHint = document.getElementById('record-hint');
+        const recordedAudioPreview = document.getElementById('recorded-audio-preview');
+        const audioVisualizer = document.getElementById('audio-visualizer');
+        const canvasCtx = audioVisualizer.getContext('2d');
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Setup audio context for visualization
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+
+                // Start visualization
+                visualize();
+
+                // Setup MediaRecorder
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioFile = new File([audioBlob], 'recorded_audio.wav', { type: 'audio/wav' });
+
+                    // Show preview
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    recordedAudioPreview.src = audioUrl;
+                    recordedAudioPreview.style.display = 'block';
+
+                    // Stop stream tracks
+                    stream.getTracks().forEach(track => track.stop());
+
+                    // Reset UI
+                    recordBtn.classList.remove('recording');
+                    recordTime.classList.remove('recording');
+                    recordHint.classList.remove('recording');
+                    recordHint.textContent = 'Recording saved! Click to record again';
+                    stopBtn.classList.add('hidden');
+
+                    // Stop visualization
+                    cancelAnimationFrame(animationId);
+                    clearCanvas();
+
+                    updateGenerateButton();
+                };
+
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+
+                // Update UI
+                recordBtn.classList.add('recording');
+                recordTime.classList.add('recording');
+                recordHint.classList.add('recording');
+                recordHint.textContent = 'Recording...';
+                stopBtn.classList.remove('hidden');
+
+                // Start timer
+                updateRecordingTime();
+                recordingTimer = setInterval(() => {
+                    const elapsed = (Date.now() - recordingStartTime) / 1000;
+                    if (elapsed >= MAX_RECORDING_TIME) {
+                        stopRecording();
+                    } else {
+                        updateRecordingTime();
+                    }
+                }, 100);
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                recordHint.textContent = 'Microphone access denied. Please allow access.';
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                clearInterval(recordingTimer);
+                if (audioContext) {
+                    audioContext.close();
+                }
+            }
+        }
+
+        function updateRecordingTime() {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            recordTime.textContent = `${minutes}:${seconds}`;
+        }
+
+        function visualize() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            const width = audioVisualizer.width = audioVisualizer.offsetWidth * 2;
+            const height = audioVisualizer.height = audioVisualizer.offsetHeight * 2;
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                canvasCtx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+                canvasCtx.fillRect(0, 0, width, height);
+
+                const barWidth = (width / bufferLength) * 2.5;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * height;
+                    canvasCtx.fillStyle = `rgba(99, 102, 241, ${0.5 + dataArray[i] / 510})`;
+                    canvasCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+
+            draw();
+        }
+
+        function clearCanvas() {
+            const width = audioVisualizer.width;
+            const height = audioVisualizer.height;
+            canvasCtx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+            canvasCtx.fillRect(0, 0, width, height);
+        }
+
+        recordBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        stopBtn.addEventListener('click', stopRecording);
+
+        // Generate button click
+        generateBtn.addEventListener('click', async () => {
+            hideError();
+            resultSection.classList.remove('visible');
+            progressSection.classList.add('visible');
+            generateBtn.disabled = true;
+            statusText.textContent = 'Uploading files...';
+
+            try {
+                const formData = new FormData();
+
+                formData.append('video', videoFile);
+                formData.append('audio', audioFile);
+
+                // Submit job
+                statusText.textContent = 'Submitting job...';
+                const submitResponse = await fetch(`${API_BASE_URL}/api/v1/jobs`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        // Don't set Content-Type - let browser set it with boundary
+                    }
+                });
+
+                if (!submitResponse.ok) {
+                    const error = await submitResponse.json();
+                    throw new Error(error.detail || 'Failed to submit job');
+                }
+
+                const submitData = await submitResponse.json();
+                currentJobId = submitData.job_id;
+
+                statusText.textContent = 'Job queued, waiting for GPU...';
+                startPolling();
+
+            } catch (error) {
+                showError(error.message);
+                progressSection.classList.remove('visible');
+                generateBtn.disabled = false;
+            }
+        });
+
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const statusResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${currentJobId}`);
+                    const statusData = await statusResponse.json();
+
+                    switch (statusData.status) {
+                        case 'queued':
+                            statusText.textContent = 'Queued, waiting for GPU...';
+                            break;
+                        case 'processing':
+                            statusText.textContent = statusData.progress || 'Processing...';
+                            break;
+                        case 'completed':
+                            clearInterval(pollInterval);
+                            statusText.textContent = 'Complete!';
+                            progressBar.classList.remove('indeterminate');
+                            progressBar.style.width = '100%';
+                            await showResult(statusData.download_url);
+                            break;
+                        case 'failed':
+                            clearInterval(pollInterval);
+                            throw new Error(statusData.error || 'Job failed');
+                    }
+
+                    if (statusData.elapsed_time) {
+                        statusText.textContent += ` (${Math.round(statusData.elapsed_time)}s)`;
+                    }
+
+                } catch (error) {
+                    clearInterval(pollInterval);
+                    showError(error.message);
+                    progressSection.classList.remove('visible');
+                    generateBtn.disabled = false;
+                }
+            }, 2000);
+        }
+
+        async function showResult(downloadUrl) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${downloadUrl}`);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                resultVideo.src = url;
+                resultSection.classList.add('visible');
+                progressSection.classList.remove('visible');
+                generateBtn.disabled = false;
+
+                // Setup download button
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `lipsync_${currentJobId}.mp4`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+
+            } catch (error) {
+                showError('Failed to load result video');
+                progressSection.classList.remove('visible');
+                generateBtn.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('visible');
+        }
+
+        // New generation button
+        newGenerationBtn.addEventListener('click', () => {
+            resultSection.classList.remove('visible');
+            progressBar.classList.add('indeterminate');
+            progressBar.style.width = '0%';
+            currentJobId = null;
+
+            // Reset video
+            videoFile = null;
+            videoFilename.textContent = '';
+            videoDropZone.classList.remove('has-file');
+            videoPreviewContainer.style.display = 'none';
+            videoInput.value = '';
+
+            // Reset uploaded audio
+            audioFile = null;
+            audioFilename.textContent = '';
+            audioDropZone.classList.remove('has-file');
+            audioPreview.style.display = 'none';
+            audioInput.value = '';
+
+            // Reset recorded audio
+            recordedAudioPreview.style.display = 'none';
+            recordedAudioPreview.src = '';
+            recordTime.textContent = '00:00';
+            recordHint.textContent = 'Click to start recording (max 30s)';
+
+            updateGenerateButton();
+        });
+
+        // API Configuration
+        const apiConfig = document.getElementById('api-config');
+        const apiUrlInput = document.getElementById('api-url-input');
+        const apiStatus = document.getElementById('api-status');
+        const apiStatusText = document.getElementById('api-status-text');
+
+        function toggleApiConfig() {
+            apiConfig.classList.toggle('expanded');
+        }
+
+        function saveApiUrl() {
+            const url = apiUrlInput.value.trim();
+            if (url) {
+                // Remove trailing slash
+                const cleanUrl = url.replace(/\/$/, '');
+                localStorage.setItem('lipsync_api_url', cleanUrl);
+                API_BASE_URL = cleanUrl;
+                checkApiStatus();
+            }
+        }
+
+        async function checkApiStatus() {
+            apiStatus.className = 'api-status';
+            apiStatusText.textContent = 'Checking...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    mode: 'cors',
+                });
+
+                if (response.ok) {
+                    apiStatus.classList.add('connected');
+                    apiStatusText.textContent = `Connected to ${API_BASE_URL}`;
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                apiStatus.classList.add('disconnected');
+                apiStatusText.textContent = `Not connected - ${API_BASE_URL}`;
+            }
+        }
+
+        // Initialize API URL input and check status
+        apiUrlInput.value = API_BASE_URL !== DEFAULT_API_URL ? API_BASE_URL : '';
+        apiUrlInput.placeholder = DEFAULT_API_URL;
+        checkApiStatus();
+    </script>
+</body>
+</html>

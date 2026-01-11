@@ -17,8 +17,9 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ============== Modal Setup ==============
@@ -323,7 +324,13 @@ web_app.add_middleware(
 
 @web_app.get("/")
 async def root():
-    """API root - health check."""
+    """Serve the frontend."""
+    return FileResponse("/static/index.html")
+
+
+@web_app.get("/health")
+async def health():
+    """API health check."""
     return {
         "service": "Wav2Lip LipSync API",
         "status": "running",
@@ -464,10 +471,27 @@ async def sync_inference(
 
 # ============== Modal ASGI Entrypoint ==============
 
-@app.function(image=wav2lip_image)
+# Create a lighter image for the web app with static files
+web_image = (
+    modal.Image.debian_slim(python_version="3.10")
+    .pip_install(
+        "fastapi",
+        "python-multipart",
+        "pydantic",
+    )
+    .add_local_dir(
+        Path(__file__).parent / "static",
+        remote_path="/static",
+    )
+)
+
+
+@app.function(image=web_image)
 @modal.asgi_app()
 def fastapi_app():
     """Deploy FastAPI as Modal web endpoint."""
+    # Mount static files for serving frontend assets
+    web_app.mount("/static", StaticFiles(directory="/static"), name="static")
     return web_app
 
 
