@@ -1,0 +1,11 @@
+1. modal deploy main.py
+2. curl -X POST "https://kirtipalve--wav2lip-lipsync-service-fastapi-app.modal.run/api/v1/jobs" \
+  -F "video=@demo/demo_video.mp4" \
+  -F "audio=@demo/demo_audio.wav" \
+  -F "use_gan=true"
+
+3. curl "YOUR_MODAL_URL/api/v1/jobs/YOUR_JOB_ID"
+
+4. curl "YOUR_MODAL_URL/api/v1/jobs/YOUR_JOB_ID/result" -o demo/output.mp4
+
+4. 

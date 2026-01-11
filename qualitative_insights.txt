@@ -1,0 +1,30 @@
+Qualitative Analysis: Performance Observations
+Linguistic Accuracy
+
+English Optimization: The model performs best with English due to its training on the LRS2 dataset. While translated ElevenLabs audio syncs well, English visemes (mouth shapes) appear sharper and more distinct.
+
+Translation Sync: In non-English tests, there is a minor "smoothing" effect where complex sounds are mapped to the nearest English phonetic equivalent.
+
+Visual Fidelity & Environmental Sensitivity
+
+Lighting Impact: Quality is highly dependent on ambient lighting. In low-light or high-contrast scenes, the generated "mouth patch" can appear waxy or blurry compared to the original face texture.
+
+Resolution Drop: Because the model generates a specific patch for the lower face, a slight resolution mismatch can occur between the generated mouth and the original high-definition video.
+
+Internal Artifacting
+
+Chromatic Aberration: During wide-mouth movements (like "A" or "O" sounds), a dark red or purple discoloration occasionally appears inside the mouth.
+
+Texture Hallucination: This occurs when the GAN struggles to predict internal textures (teeth/tongue) under specific lighting, resulting in localized color artifacts.
+
+Hardware & Operational Scaling
+
+GPU Bandwidth: Processing speed scales linearly with GPU power. On the Modal platform, an NVIDIA A10G provides a significantly lower Real-Time Factor (RTF) than the T4, making it better for production APIs.
+
+Latency: Faster GPUs reduce the wait time for 20-second clips from ~15 seconds to under 8 seconds.
+
+Identity & Stability (Key Strengths)
+
+Identity Preservation: Because the model uses a masked approach, it only modifies the lower face. 100% of the original identity (eyes, forehead, and hair) remains untouched and authentic.
+
+Temporal Coherence: The output is remarkably stable. There is no frame-to-frame "jitter" or "popping," even when synchronized with translated audio that has different pacing than the original video.
